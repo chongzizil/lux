@@ -1,6 +1,7 @@
 package extractors
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -54,6 +55,10 @@ func Extract(u string, option Options) ([]*Data, error) {
 		return nil, errors.WithStack(err)
 	}
 	for _, v := range videos {
+		if v == nil {
+			fmt.Printf("video of %s is nil, skipping\n", u)
+			continue
+		}
 		v.FillUpStreamsData()
 	}
 	return videos, nil
