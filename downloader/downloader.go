@@ -541,36 +541,60 @@ func (downloader *Downloader) aria2(title string, stream *extractors.Stream) err
 	return nil
 }
 
+type MediaInfo struct {
+	SortedStreams []*extractors.Stream
+	Title         string
+	StreamName    string
+	Stream        *extractors.Stream
+}
+
+func (downloader *Downloader) GetMediaInfo(data *extractors.Data) (*MediaInfo, error) {
+	mediaInfo := &MediaInfo{}
+	mediaInfo.SortedStreams = genSortedStreams(data.Streams)
+	if len(mediaInfo.SortedStreams) == 0 {
+		return mediaInfo, fmt.Errorf("nil stream %s", mediaInfo.StreamName)
+	}
+	if downloader.option.InfoOnly {
+		printInfo(data, mediaInfo.SortedStreams)
+		return mediaInfo, nil
+	}
+
+	mediaInfo.Title = downloader.option.OutputName
+	if mediaInfo.Title == "" {
+		mediaInfo.Title = data.Title
+	}
+	mediaInfo.Title = utils.FileName(mediaInfo.Title, "", downloader.option.FileNameLength)
+
+	mediaInfo.StreamName = downloader.option.Stream
+	if mediaInfo.StreamName == "" {
+		mediaInfo.StreamName = mediaInfo.SortedStreams[0].ID
+	}
+	var ok bool
+	mediaInfo.Stream, ok = data.Streams[mediaInfo.StreamName]
+	if !ok {
+		return mediaInfo, fmt.Errorf("no stream named %s", mediaInfo.StreamName)
+	}
+
+	return mediaInfo, nil
+}
+
 // Download download urls
 func (downloader *Downloader) Download(data *extractors.Data) error {
 	if len(data.Streams) == 0 {
 		return errors.Errorf("no streams in title %s", data.Title)
 	}
 
-	sortedStreams := genSortedStreams(data.Streams)
-	if downloader.option.InfoOnly {
-		printInfo(data, sortedStreams)
-		return nil
+	mediaInfo, err := downloader.GetMediaInfo(data)
+	if err != nil {
+		return err
 	}
 
-	title := downloader.option.OutputName
-	if title == "" {
-		title = data.Title
-	}
-	title = utils.FileName(title, "", downloader.option.FileNameLength)
+	title := mediaInfo.Title
+	stream := mediaInfo.Stream
 
-	streamName := downloader.option.Stream
-	if streamName == "" {
-		streamName = sortedStreams[0].ID
-	}
-	stream, ok := data.Streams[streamName]
-	if !ok {
-		return errors.Errorf("no stream named %s", streamName)
-	}
-
-	if !downloader.option.Silent {
-		printStreamInfo(data, stream)
-	}
+	// if !downloader.option.Silent {
+	// 	printStreamInfo(data, stream)
+	// }
 
 	// download caption
 	if downloader.option.Caption && data.Captions != nil {
