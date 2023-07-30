@@ -3,6 +3,7 @@ package downloader
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -25,16 +26,23 @@ func genSortedStreams(streams map[string]*extractors.Stream) []*extractors.Strea
 			sortedStreams, func(i, j int) bool {
 				iQualityIDs := strings.Split(sortedStreams[i].ID, "-")
 				jQualityIDs := strings.Split(sortedStreams[j].ID, "-")
+
+				iResolutionID, _ := strconv.Atoi(iQualityIDs[0])
+				jResolutionID, _ := strconv.Atoi(jQualityIDs[0])
 				// by resolution
-				if iQualityIDs[0] != jQualityIDs[0] {
-					return iQualityIDs[0] > jQualityIDs[0]
+				if iResolutionID != jResolutionID {
+					return iResolutionID > jResolutionID
 				}
+
 				// no encoding, by size only
 				if len(iQualityIDs) != 2 || len(iQualityIDs) != len(jQualityIDs) {
 					return sortedStreams[i].Size > sortedStreams[j].Size
 				}
+
+				iEncodingID, _ := strconv.Atoi(iQualityIDs[1])
+				jEncodingID, _ := strconv.Atoi(jQualityIDs[1])
 				// by encoding
-				return iQualityIDs[1] > jQualityIDs[1]
+				return iEncodingID > jEncodingID
 			},
 		)
 	}
