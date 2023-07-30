@@ -3,6 +3,7 @@ package downloader
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/fatih/color"
 
@@ -21,7 +22,20 @@ func genSortedStreams(streams map[string]*extractors.Stream) []*extractors.Strea
 	}
 	if len(sortedStreams) > 1 {
 		sort.SliceStable(
-			sortedStreams, func(i, j int) bool { return sortedStreams[i].Size > sortedStreams[j].Size },
+			sortedStreams, func(i, j int) bool {
+				iQualityIDs := strings.Split(sortedStreams[i].ID, "-")
+				jQualityIDs := strings.Split(sortedStreams[j].ID, "-")
+				// by resolution
+				if iQualityIDs[0] != jQualityIDs[0] {
+					return iQualityIDs[0] > jQualityIDs[0]
+				}
+				// no encoding, by size only
+				if len(iQualityIDs) != 2 || len(iQualityIDs) != len(jQualityIDs) {
+					return sortedStreams[i].Size > sortedStreams[j].Size
+				}
+				// by encoding
+				return iQualityIDs[1] > jQualityIDs[1]
+			},
 		)
 	}
 	return sortedStreams
